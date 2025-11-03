@@ -7,7 +7,11 @@ public class Main {
 
         SQLFilesDAO.connect();
         File file = new File("users", "/home", "package");
-        UserImpl user = new UserImpl();
+        UserImpl user = SQLFilesDAO.getUsers().stream()
+                .filter(u -> u.getName().equals("root"))
+                .findFirst()
+                .orElse(null);
+        user.setLocation("/home");
         SQLFilesDAO.addFile(file, user);
     }
 }

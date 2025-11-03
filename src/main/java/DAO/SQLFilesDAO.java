@@ -10,6 +10,9 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
+import POJO.impl.File;
+import POJO.impl.UserImpl;
 import supportive.Support;
 public class SQLFilesDAO {
     private static final String URL = "jdbc:postgresql://localhost:5432/NIR";
@@ -32,7 +35,7 @@ public class SQLFilesDAO {
         String sqlFile = "insert into file(name, path, type) VALUES (?, ?, ?) returning ID";
         String sqlСonnection = "insert into storage_files(id_of_owner, id_of_subordinate) VALUES (?, ?)";
         String sql = "SELECT id FROM file where name = ?";
-        String sqlPath= "select * from file where path = ? and name = ?";
+        String sqlPath = "select * from file where path = ? and name = ?";
         ResultSet resultSet;
 
         try {
@@ -47,7 +50,7 @@ public class SQLFilesDAO {
                 path += elem;
             fileService.setPath(path);
 
-            while(true) {
+            while (true) {
                 stmtPath.setString(1, fileService.getPath());
                 stmtPath.setString(2, fileService.getName() + Repiet);
                 resultSet = stmtPath.executeQuery();
@@ -60,7 +63,7 @@ public class SQLFilesDAO {
             stmt.setString(2, fileService.getPath());
 
 
-            if (Support.FindElem(fileService.getName(), '/') == null){
+            if (Support.FindElem(fileService.getName(), '/') == null) {
                 stmt.setString(2, fileService.getPath());
                 stmtSql.setString(1, user.getlocation().get(user.getlocation().size() - 1));
                 resultSet = stmtSql.executeQuery();
@@ -83,6 +86,76 @@ public class SQLFilesDAO {
             return false;
         }
         return false;
+    }
+
+    public static List<Long> getOwnLocale() {
+        List<Long> locals = new ArrayList<>();
+        String sql = "select id from storage_files";
+        ResultSet resultSet;
+        try{
+            PreparedStatement stmt = connection.prepareStatement(sql);
+            resultSet = stmt.executeQuery();
+            if (resultSet.next()) {
+                locals.add(resultSet.getLong("ID"));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+            return null;
+        }
+        return locals;
+    }
+
+    public static List<File> getLocals() {
+        List<File> locals = new ArrayList<>();
+        String sql = "select * from file";
+        ResultSet resultSet;
+        try{
+            PreparedStatement stmt = connection.prepareStatement(sql);
+            resultSet = stmt.executeQuery();
+            if (resultSet.next()) {
+                File fileService = new File(resultSet.getString("name"),
+                        resultSet.getString("path"),
+                        resultSet.getString("type"));
+                locals.add(fileService);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+            return null;
+        }
+        return locals;
+    }
+
+    public static List<UserImpl> getUsers() {
+        List<UserImpl> users = new ArrayList<>();
+        String sql = "select * from user";
+        ResultSet resultSet;
+        UserImpl userImpl = new UserImpl();
+        try {
+            PreparedStatement stmt = connection.prepareStatement(sql);
+            resultSet = stmt.executeQuery();
+            if (resultSet.next()) {
+                userImpl.setId(resultSet.getLong("ID"));
+                userImpl.setName(resultSet.getString("name"));
+                userImpl.setRole(resultSet.getLong("role"));
+                userImpl.setPassword(resultSet.getString("password"));
+                users.add(userImpl);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+            return null;
+        }
+        return users;
+    }
+
+    public static void deleteFile(FileService fileService) {
+        String sql = "delete from file where id = ?";
+        try {
+            PreparedStatement stmtSql = connection.prepareStatement(sql);
+            stmtSql.setLong(1, fileService.getId());
+            stmtSql.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
     }
 /*
     public static boolean deleteProductById(long id) {

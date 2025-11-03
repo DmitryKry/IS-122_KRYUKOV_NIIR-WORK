@@ -9,9 +9,10 @@ public interface User {
     Role getRole();
     String getPassword();
     List<String> getlocation();
+    List<String> getUsers();
     void setId(long id);
     void setName(String name);
-    void setRole(Role role);
+    void setRole(Long role);
     void setPassword(String password);
     void setLocation(String location);
 

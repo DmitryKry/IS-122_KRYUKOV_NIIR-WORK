@@ -1,6 +1,8 @@
 package POJO.impl;
 
+import DAO.SQLFilesDAO;
 import POJO.User;
+import supportive.Support;
 
 import javax.management.relation.Role;
 import java.util.ArrayList;
@@ -44,27 +46,45 @@ public class UserImpl implements User {
     }
 
     @Override
-    public void setId(long id) {
+    public List<String> getUsers() {
+        return List.of();
+    }
 
+    @Override
+    public void setId(long id) {
+        this.id = id;
     }
 
     @Override
     public void setName(String name) {
-
+        this.name = name;
     }
 
     @Override
-    public void setRole(Role role) {
-
+    public void setRole(Long role) {
+        this.role = String.valueOf(role);
     }
 
     @Override
     public void setPassword(String password) {
-
+        this.password = password;
     }
 
     @Override
     public void setLocation(String location) {
+        if (location.equals("..")){
+            locale.remove(locale.size()-1);
+            return;
+        }
+        if (Support.FindElem(location, '/') != null)
+            return;
+        File file = SQLFilesDAO.getLocals().stream().filter(
+                t -> t.getName().equals(location)).findFirst().orElse(null);
+        if (file != null) {
+            if (SQLFilesDAO.getOwnLocale().stream().filter(
+                    t -> t.equals(file.getId())).findFirst().orElse(null) != null)
+                this.locale.add(location);
+        }
 
     }
 }
