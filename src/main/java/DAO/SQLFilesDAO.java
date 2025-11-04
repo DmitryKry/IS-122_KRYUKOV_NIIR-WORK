@@ -88,15 +88,23 @@ public class SQLFilesDAO {
         return false;
     }
 
-    public static List<Long> getOwnLocale() {
-        List<Long> locals = new ArrayList<>();
-        String sql = "select id from storage_files";
+    public static List<File> getOwnLocale(Long idOfOwner) {
+        List<File> locals = new ArrayList<>();
+        String sql = "select * from storage_files where id_of_owner = ?";
         ResultSet resultSet;
         try{
             PreparedStatement stmt = connection.prepareStatement(sql);
+            stmt.setLong(1, idOfOwner);
             resultSet = stmt.executeQuery();
-            if (resultSet.next()) {
-                locals.add(resultSet.getLong("ID"));
+            while (resultSet.next()) {
+                Long fileOwn = resultSet.getLong("id_of_subordinate");
+                File temp = SQLFilesDAO.getLocals().stream()
+                        .filter(t -> t.getId() == fileOwn)
+                        .findFirst().orElse(null);
+                if (temp != null) {
+                    locals.add(temp);
+                }
+
             }
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
@@ -112,10 +120,11 @@ public class SQLFilesDAO {
         try{
             PreparedStatement stmt = connection.prepareStatement(sql);
             resultSet = stmt.executeQuery();
-            if (resultSet.next()) {
+            while (resultSet.next()) {
                 File fileService = new File(resultSet.getString("name"),
                         resultSet.getString("path"),
                         resultSet.getString("type"));
+                fileService.setId(resultSet.getLong("id"));
                 locals.add(fileService);
             }
         } catch (SQLException e) {
@@ -127,13 +136,13 @@ public class SQLFilesDAO {
 
     public static List<UserImpl> getUsers() {
         List<UserImpl> users = new ArrayList<>();
-        String sql = "select * from user";
+        String sql = "select * from user_file";
         ResultSet resultSet;
-        UserImpl userImpl = new UserImpl();
         try {
             PreparedStatement stmt = connection.prepareStatement(sql);
             resultSet = stmt.executeQuery();
-            if (resultSet.next()) {
+            while (resultSet.next()) {
+                UserImpl userImpl = new UserImpl();
                 userImpl.setId(resultSet.getLong("ID"));
                 userImpl.setName(resultSet.getString("name"));
                 userImpl.setRole(resultSet.getLong("role"));

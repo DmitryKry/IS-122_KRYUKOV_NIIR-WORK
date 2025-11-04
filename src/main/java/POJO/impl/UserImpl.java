@@ -22,7 +22,7 @@ public class UserImpl implements User {
 
     @Override
     public long getId() {
-        return 0;
+        return this.id;
     }
 
     @Override
@@ -46,8 +46,8 @@ public class UserImpl implements User {
     }
 
     @Override
-    public List<String> getUsers() {
-        return List.of();
+    public List<UserImpl> getUsers() {
+        return SQLFilesDAO.getUsers();
     }
 
     @Override
@@ -81,8 +81,7 @@ public class UserImpl implements User {
         File file = SQLFilesDAO.getLocals().stream().filter(
                 t -> t.getName().equals(location)).findFirst().orElse(null);
         if (file != null) {
-            if (SQLFilesDAO.getOwnLocale().stream().filter(
-                    t -> t.equals(file.getId())).findFirst().orElse(null) != null)
+            if (SQLFilesDAO.getOwnLocale(file.getId()) != null)
                 this.locale.add(location);
         }
 

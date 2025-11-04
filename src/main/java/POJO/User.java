@@ -1,5 +1,7 @@
 package POJO;
 
+import POJO.impl.UserImpl;
+
 import javax.management.relation.Role;
 import java.util.List;
 
@@ -9,7 +11,7 @@ public interface User {
     Role getRole();
     String getPassword();
     List<String> getlocation();
-    List<String> getUsers();
+    List<UserImpl> getUsers();
     void setId(long id);
     void setName(String name);
     void setRole(Long role);
