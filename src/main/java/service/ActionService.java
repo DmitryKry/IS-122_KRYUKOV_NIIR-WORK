@@ -9,4 +9,5 @@ public interface ActionService {
     User cd(String act, UserImpl user);
     List<String> ls(UserImpl user);
     List<String> ls(String file);
+    void delete(String file);
 }

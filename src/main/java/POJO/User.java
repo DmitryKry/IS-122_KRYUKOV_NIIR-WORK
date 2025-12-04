@@ -17,5 +17,4 @@ public interface User {
     void setRole(Long role);
     void setPassword(String password);
     void setLocation(String location);
-
 }

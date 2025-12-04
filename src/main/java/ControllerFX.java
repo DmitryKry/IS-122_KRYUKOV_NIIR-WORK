@@ -21,6 +21,7 @@ public class ControllerFX {
     private TextArea outputArea;
     private UserImpl user;
     private ActionImpl action = new ActionImpl();
+    private boolean commandChek = false;
     @FXML
     private void initialize() {
         SQLFilesDAO.connect();
@@ -32,26 +33,40 @@ public class ControllerFX {
         sendButton.setOnAction(event -> {
             String text = inputField.getText();
             String command = "";
+            String path = "";
             if (!text.isEmpty()) {
                 inputField.clear();  // Очищаем поле после отправки
                 for (char c : text.toCharArray()) {
                     if (c == ' ') {
-                        break;
+                        commandChek = true;
+                        continue;
                     }
-                    else command += c;
+                    else if (!commandChek) command += c;
+                    else path += c;
                 }
+                commandChek = false;
+
                 switch (command) {
                     case "mkdir":
-                        addFile(null, null);
+                        addFile(path, null);
                         break;
                     case "ls":
+                        outputArea.appendText(command + " " + path + ": ");
                         ls();
                         break;
                     case "cd":
-                        cd(null);
+                        cd(path);
                         break;
                     case "pwd":
+                        outputArea.appendText(command + " " + path + ": ");
                         pwd();
+                        break;
+                    case "clear":
+                        clear();
+                        break;
+                    case "rm":
+                        delete(path);
+                        break;
                  }
 
             }
@@ -67,7 +82,7 @@ public class ControllerFX {
         if (path == null){
             path = "/home";
         }
-        File file = new File("users", path, type);
+        File file = new File(path, path, type);
         user.setLocation("/home");
         SQLFilesDAO.addFile(file, user);
     }
@@ -79,10 +94,10 @@ public class ControllerFX {
     }
 
     public void cd(String path){
-        if (path == null){
-            path = "/home";
+        if (path == null || path.isEmpty()){
+            path = "home";
         }
-        user = action.cd("users", user);
+        user = action.cd(path, user);
         System.out.println(user.getlocation());
     }
 
@@ -90,5 +105,13 @@ public class ControllerFX {
         for (String elem : user.getlocation())
             outputArea.appendText(elem);
         outputArea.appendText("\n");
+    }
+
+    public void clear(){
+        outputArea.clear();
+    }
+
+    public void delete(String file){
+        action.delete(file);
     }
 }

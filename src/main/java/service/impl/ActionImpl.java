@@ -37,4 +37,10 @@ public class ActionImpl implements ActionService {
     public List<String> ls(String file) {
         return List.of();
     }
+
+    @Override
+    public void delete(String file){
+        SQLFilesDAO.deleteFile(file);
+    }
+
 }

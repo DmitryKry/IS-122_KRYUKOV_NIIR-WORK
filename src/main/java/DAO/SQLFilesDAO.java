@@ -156,14 +156,47 @@ public class SQLFilesDAO {
         return users;
     }
 
-    public static void deleteFile(FileService fileService) {
+    public static void deleteFile(String fileName) {
         String sql = "delete from file where id = ?";
+        String sqlOwn = "delete from storage_files where id_of_subordinate = ?";
         try {
-            PreparedStatement stmtSql = connection.prepareStatement(sql);
-            stmtSql.setLong(1, fileService.getId());
-            stmtSql.executeUpdate();
+            connection.setAutoCommit(false); // Начинаем транзакцию
+
+            File file = getLocals().stream()
+                    .filter(locale -> locale.getName().equals(fileName))
+                    .findFirst().orElse(null);
+
+            if (file == null) {
+                System.out.println("Файл не найден: " + fileName);
+                return;
+            }
+
+            long fileId = file.getId();
+
+            try (PreparedStatement stmtSqlOwner = connection.prepareStatement(sqlOwn);
+                 PreparedStatement stmtSql = connection.prepareStatement(sql)) {
+
+                // Удаляем зависимые записи
+                stmtSqlOwner.setLong(1, fileId);
+                stmtSqlOwner.executeUpdate();
+
+                // Удаляем основную запись
+                stmtSql.setLong(1, fileId);
+                stmtSql.executeUpdate();
+
+                connection.commit(); // Подтверждаем транзакцию
+                System.out.println("Файл успешно удален: " + fileName);
+
+            } catch (SQLException e) {
+                connection.rollback(); // Откатываем при ошибке
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 /*

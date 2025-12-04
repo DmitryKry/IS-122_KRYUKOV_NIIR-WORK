@@ -74,14 +74,16 @@ public class UserImpl implements User {
     public void setLocation(String location) {
         if (location.equals("..")){
             locale.remove(locale.size()-1);
+            locale.remove(locale.size()-1);
             return;
         }
-        if (Support.FindElem(location, '/') != null)
-            return;
+        /*if (Support.FindElem(location, '/') != null)
+            return;*/
         File file = SQLFilesDAO.getLocals().stream().filter(
                 t -> t.getName().equals(location)).findFirst().orElse(null);
         if (file != null) {
             if (SQLFilesDAO.getOwnLocale(file.getId()) != null)
+                this.locale.add("/");
                 this.locale.add(location);
         }
 
