@@ -156,47 +156,122 @@ public class SQLFilesDAO {
         return users;
     }
 
-    public static void deleteFile(String fileName) {
+    public static void deleteFile(List<String> ownerFileNames, String fileName) {
         String sql = "delete from file where id = ?";
-        String sqlOwn = "delete from storage_files where id_of_subordinate = ?";
+        String sqlOwn = "delete from storage_files where id_of_owner = ? and id_of_subordinate = ?";
         try {
             connection.setAutoCommit(false); // Начинаем транзакцию
 
-            File file = getLocals().stream()
-                    .filter(locale -> locale.getName().equals(fileName))
+            String tempmainPath = "";
+            for (int i = 0; i < ownerFileNames.size() - 2; i++) {
+                tempmainPath += ownerFileNames.get(i);
+            }
+            String MAINPath = tempmainPath;
+            File ownFile = getLocals().stream()
+                    .filter(locals -> locals.getName()
+                            .equals(ownerFileNames.get(ownerFileNames.size() - 1)) &&
+                            locals.getPath().equals(MAINPath))
                     .findFirst().orElse(null);
-
+            File file = getLocals().stream()
+                    .filter(locals -> locals.getName()
+                            .equals(fileName) &&
+                            locals.getPath().equals(ownFile.getPath() + "/" + ownFile.getName()))
+                    .findFirst().orElse(null);
             if (file == null) {
                 System.out.println("Файл не найден: " + fileName);
                 return;
             }
 
             long fileId = file.getId();
-
-            try (PreparedStatement stmtSqlOwner = connection.prepareStatement(sqlOwn);
-                 PreparedStatement stmtSql = connection.prepareStatement(sql)) {
-
-                // Удаляем зависимые записи
-                stmtSqlOwner.setLong(1, fileId);
-                stmtSqlOwner.executeUpdate();
-
-                // Удаляем основную запись
-                stmtSql.setLong(1, fileId);
-                stmtSql.executeUpdate();
-
-                connection.commit(); // Подтверждаем транзакцию
-                System.out.println("Файл успешно удален: " + fileName);
-
-            } catch (SQLException e) {
-                connection.rollback(); // Откатываем при ошибке
-                throw e;
-            } finally {
-                connection.setAutoCommit(true);
+            PreparedStatement stmtSqlSubordinate = connection.prepareStatement(sqlOwn);
+            PreparedStatement stmtSql = connection.prepareStatement(sql);
+            for (File elem : getOwnLocale(fileId)) {
+                if (getOwnLocale(elem.getId()) == null) {
+                    stmtSqlSubordinate.setLong(1, fileId);
+                    stmtSqlSubordinate.setLong(2, elem.getId());
+                    stmtSqlSubordinate.executeUpdate();
+                    stmtSql.setLong(1, elem.getId());
+                    stmtSql.executeUpdate();
+                    connection.commit(); // Подтверждаем транзакцию
+                    System.out.println("Файл успешно удален: " + fileName);
+                }
+                else {
+                    List<String> tempPath = ownerFileNames;
+                    tempPath.add("/");
+                    tempPath.add(fileName);
+                    deleteFile(tempPath, elem.getName());
+                }
             }
+            // Удаляем основную запись
+            stmtSqlSubordinate.setLong(1, ownFile.getId());
+            stmtSqlSubordinate.setLong(2, fileId);
+            stmtSqlSubordinate.executeUpdate();
+            stmtSql.setLong(1, fileId);
+            stmtSql.executeUpdate();
+
+            connection.commit(); // Подтверждаем транзакцию
+            System.out.println("Файл успешно удален: " + fileName);
 
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    static public void move(List<String> ownerFileNames, String fileName, String path){
+        String sqlPath = "select id from file where path = ? and name = ?";
+        String sqlSubordinate = "update storage_files set id_of_owner = ? where id_of_subordinate = ?";
+        String sqlUpdateFile = "update file set path = ? where id = ?";
+        ResultSet resultSet;
+        String ownFileName = "";
+        String tempForOwnFileName = "";
+        try {
+            for (int i = path.length() - 1; i >= 0; i--) {
+                if (path.charAt(i) == '/'){
+                    path = path.substring(0, path.length() - 1);
+                    break;
+                }
+                else tempForOwnFileName += path.charAt(i);
+                path = path.substring(0, path.length() - 1);
+            }
+            for (int i = tempForOwnFileName.length() - 1; i >= 0; i--) {
+                ownFileName += tempForOwnFileName.charAt(i);
+            }
+            connection.setAutoCommit(false);
+            String tempmainPath = "";
+            for (int i = 0; i < ownerFileNames.size() - 2; i++) {
+                tempmainPath += ownerFileNames.get(i);
+            }
+            String MAINPath = tempmainPath;
+            File ownFile = getLocals().stream()
+                    .filter(locals -> locals.getName()
+                            .equals(ownerFileNames.get(ownerFileNames.size() - 1)) &&
+                            locals.getPath().equals(MAINPath))
+                    .findFirst().orElse(null);
+            File file = getLocals().stream()
+                    .filter(locals -> locals.getName()
+                            .equals(fileName) &&
+                            locals.getPath().equals(ownFile.getPath() + "/" + ownFile.getName()))
+                    .findFirst().orElse(null);
+            PreparedStatement stmtPath = connection.prepareStatement(sqlPath);
+            PreparedStatement stmtSubordinate = connection.prepareStatement(sqlSubordinate);
+            PreparedStatement stmtUpdateFile = connection.prepareStatement(sqlUpdateFile);
+            stmtPath.setString(1, path);
+            stmtPath.setString(2, ownFileName);
+            resultSet = stmtPath.executeQuery();
+            while (resultSet.next()) {
+                Long fileId = resultSet.getLong("id");
+                stmtSubordinate.setLong(1, fileId);
+                stmtSubordinate.setLong(2, file.getId());
+            }
+            stmtSubordinate.executeUpdate();
+            stmtUpdateFile.setString(1, path + '/' + ownFileName);
+            stmtUpdateFile.setLong(2, file.getId());
+            stmtUpdateFile.executeUpdate();
+            connection.commit(); // Подтверждаем транзакцию
+            System.out.println("Файл успешно перемещён: " + fileName);
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
         }
     }
 /*

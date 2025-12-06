@@ -22,6 +22,7 @@ public class ControllerFX {
     private UserImpl user;
     private ActionImpl action = new ActionImpl();
     private boolean commandChek = false;
+    private boolean ParhChek = false;
     @FXML
     private void initialize() {
         SQLFilesDAO.connect();
@@ -34,17 +35,22 @@ public class ControllerFX {
             String text = inputField.getText();
             String command = "";
             String path = "";
+            String pathSecond = "";
             if (!text.isEmpty()) {
                 inputField.clear();  // Очищаем поле после отправки
                 for (char c : text.toCharArray()) {
                     if (c == ' ') {
+                        if (commandChek){
+                            ParhChek = true;
+                        }
                         commandChek = true;
-                        continue;
                     }
                     else if (!commandChek) command += c;
+                    else if (ParhChek)  pathSecond += c;
                     else path += c;
                 }
                 commandChek = false;
+                ParhChek = false;
 
                 switch (command) {
                     case "mkdir":
@@ -66,6 +72,9 @@ public class ControllerFX {
                         break;
                     case "rm":
                         delete(path);
+                        break;
+                    case "mv":
+                        move(path, pathSecond);
                         break;
                  }
 
@@ -112,6 +121,10 @@ public class ControllerFX {
     }
 
     public void delete(String file){
-        action.delete(file);
+        action.delete(user.getlocation(), file);
+    }
+
+    public void move(String file, String path){
+        action.move(user.getlocation(), file, path);
     }
 }
