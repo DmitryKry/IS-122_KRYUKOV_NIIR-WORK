@@ -27,6 +27,9 @@ public class ActionImpl implements ActionService {
         for (int i = 0; i < user.getlocation().size() - 2; i++) {
             TempForOwnLocale += user.getlocation().get(i);
         }
+        if (TempForOwnLocale.equals("")) {
+            TempForOwnLocale = "/";
+        }
         String ownLocale = TempForOwnLocale;
         file = SQLFilesDAO.getLocals().stream().filter(
                 t -> t.getName().equals(user.getlocation().get(user.getlocation().size() - 1)) &&
@@ -52,6 +55,11 @@ public class ActionImpl implements ActionService {
     @Override
     public void move(List<String> ownerFiles,String file, String path){
         SQLFilesDAO.move(ownerFiles, file, path);
+    }
+
+    @Override
+    public void reName(List<String> ownerFiles, String file, String newName) {
+        SQLFilesDAO.reName(ownerFiles, file, newName);
     }
 
 }

@@ -76,6 +76,9 @@ public class ControllerFX {
                     case "mv":
                         move(path, pathSecond);
                         break;
+                    case "reName":
+                        reName(path, pathSecond);
+                        break;
                  }
 
             }
@@ -126,5 +129,8 @@ public class ControllerFX {
 
     public void move(String file, String path){
         action.move(user.getlocation(), file, path);
+    }
+    public void reName(String file, String newName){
+        action.reName(user.getlocation(), file, newName);
     }
 }

@@ -274,6 +274,29 @@ public class SQLFilesDAO {
             System.out.println("Error: " + e.getMessage());
         }
     }
+    
+    static public void reName(List<String> ownerFilePath, String fileName, String newName){
+        String sqlPath = "update file set name = ? where id = ?";
+        String tempPath = "";
+        try {
+            for (String elem : ownerFilePath) {
+                tempPath += elem;
+            }
+            String mainPath = tempPath;
+            PreparedStatement stmt = connection.prepareStatement(sqlPath);
+            File current = getLocals().stream()
+                    .filter(locals -> locals.getName().equals(fileName) &&
+                            locals.getPath().equals(mainPath))
+                    .findFirst().orElse(null);
+            stmt.setString(1, newName);
+            stmt.setLong(2, current.getId());
+            stmt.executeUpdate();
+            System.out.println("Файл был успешно переименован в: " + newName);
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+        
+    }
 /*
     public static boolean deleteProductById(long id) {
         String sql = "DELETE FROM products WHERE id = ?";
