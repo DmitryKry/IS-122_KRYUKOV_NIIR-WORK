@@ -83,10 +83,8 @@ public class ControllerFX {
 
             }
         });
-
-        // ИЛИ Способ 2: Обработчик через ссылку на метод
-        // sendButton.setOnAction(this::handleButtonClick);
     }
+
     public void addFile(String path, String type){
         if (type == null){
             type = "package";
@@ -107,7 +105,7 @@ public class ControllerFX {
 
     public void cd(String path){
         if (path == null || path.isEmpty()){
-            path = "home";
+            path = "/home";
         }
         user = action.cd(path, user);
         System.out.println(user.getlocation());
@@ -130,7 +128,9 @@ public class ControllerFX {
     public void move(String file, String path){
         action.move(user.getlocation(), file, path);
     }
+
     public void reName(String file, String newName){
         action.reName(user.getlocation(), file, newName);
+        user = action.cd("..", user);
     }
 }

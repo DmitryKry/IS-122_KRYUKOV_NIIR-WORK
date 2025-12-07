@@ -72,6 +72,9 @@ public class UserImpl implements User {
 
     @Override
     public void setLocation(String location) {
+        if (locale.size() < 3){
+            return;
+        }
         if (location.equals("..")){
             locale.remove(locale.size()-1);
             locale.remove(locale.size()-1);

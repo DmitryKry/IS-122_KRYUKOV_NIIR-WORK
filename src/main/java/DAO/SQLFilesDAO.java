@@ -197,9 +197,14 @@ public class SQLFilesDAO {
                 }
                 else {
                     List<String> tempPath = ownerFileNames;
-                    tempPath.add("/");
-                    tempPath.add(fileName);
-                    deleteFile(tempPath, elem.getName());
+                    if (tempPath.get(tempPath.size() - 1).equals(fileName)) {
+                        deleteFile(tempPath, elem.getName());
+                    }
+                    else{
+                        tempPath.add("/");
+                        tempPath.add(fileName);
+                        deleteFile(tempPath, elem.getName());
+                    }
                 }
             }
             // Удаляем основную запись
@@ -276,21 +281,34 @@ public class SQLFilesDAO {
     }
     
     static public void reName(List<String> ownerFilePath, String fileName, String newName){
-        String sqlPath = "update file set name = ? where id = ?";
+        String sqlNewName = "update file set name = ? where id = ?";
+        String sqlOwn = "select id_of_subordinate from storage_files where id_of_owner = ?";
+        String sqlNewPath = "update file set path = ? where id = ?";
         String tempPath = "";
+        ResultSet resultSet;
         try {
             for (String elem : ownerFilePath) {
                 tempPath += elem;
             }
             String mainPath = tempPath;
-            PreparedStatement stmt = connection.prepareStatement(sqlPath);
+            PreparedStatement stmtNewName = connection.prepareStatement(sqlNewName);
+            PreparedStatement stmtOwn = connection.prepareStatement(sqlOwn);
+            PreparedStatement stmNewPath = connection.prepareStatement(sqlNewPath);
             File current = getLocals().stream()
                     .filter(locals -> locals.getName().equals(fileName) &&
                             locals.getPath().equals(mainPath))
                     .findFirst().orElse(null);
-            stmt.setString(1, newName);
-            stmt.setLong(2, current.getId());
-            stmt.executeUpdate();
+            stmtOwn.setLong(1, current.getId());
+            resultSet = stmtOwn.executeQuery();
+            while (resultSet.next()) {
+                Long fileId = resultSet.getLong("id_of_subordinate");
+                stmNewPath.setString(1, mainPath + "/" + newName);
+                stmNewPath.setLong(2, fileId);
+                stmNewPath.executeUpdate();
+            }
+            stmtNewName.setString(1, newName);
+            stmtNewName.setLong(2, current.getId());
+            stmtNewName.executeUpdate();
             System.out.println("Файл был успешно переименован в: " + newName);
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
