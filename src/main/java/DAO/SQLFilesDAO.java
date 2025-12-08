@@ -31,7 +31,7 @@ public class SQLFilesDAO {
         }
     }
 
-    public static boolean addFile(FileService fileService, User user) {
+    public static boolean addFile(List<String> ownerFileNames,FileService fileService, User user) {
         String sqlFile = "insert into file(name, path, type) VALUES (?, ?, ?) returning ID";
         String sqlСonnection = "insert into storage_files(id_of_owner, id_of_subordinate) VALUES (?, ?)";
         String sql = "SELECT id FROM file where name = ?";
@@ -43,6 +43,17 @@ public class SQLFilesDAO {
             PreparedStatement stmtConnect = connection.prepareStatement(sqlСonnection);
             PreparedStatement stmtSql = connection.prepareStatement(sql);
             PreparedStatement stmtPath = connection.prepareStatement(sqlPath);
+
+            String tempmainPath = "";
+            for (int i = 0; i < ownerFileNames.size() - 2; i++) {
+                tempmainPath += ownerFileNames.get(i);
+            }
+            String MAINPath = tempmainPath;
+            File ownFile = getLocals().stream()
+                    .filter(locals -> locals.getName()
+                            .equals(ownerFileNames.get(ownerFileNames.size() - 1)) &&
+                            locals.getPath().equals(MAINPath))
+                    .findFirst().orElse(null);
 
             String Repiet = "";
             String path = "";
@@ -68,9 +79,10 @@ public class SQLFilesDAO {
                 stmtSql.setString(1, user.getlocation().get(user.getlocation().size() - 1));
                 resultSet = stmtSql.executeQuery();
                 if (resultSet.next()) {
-                    stmtConnect.setLong(1, resultSet.getLong("ID"));
+                    //stmtConnect.setLong(1, resultSet.getLong("ID"));
                 }
             }
+            stmtConnect.setLong(1, ownFile.getId());
             stmt.setString(3, fileService.getType());
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
@@ -284,9 +296,12 @@ public class SQLFilesDAO {
         String sqlNewName = "update file set name = ? where id = ?";
         String sqlOwn = "select id_of_subordinate from storage_files where id_of_owner = ?";
         String sqlNewPath = "update file set path = ? where id = ?";
+        String sqlNameFileSubordinate = "select name from file where id = ?";
         String tempPath = "";
         ResultSet resultSet;
+        ResultSet resultSetNameFileSubordinate;
         try {
+            connection.setAutoCommit(false); // Начинаем транзакцию
             for (String elem : ownerFilePath) {
                 tempPath += elem;
             }
@@ -294,22 +309,36 @@ public class SQLFilesDAO {
             PreparedStatement stmtNewName = connection.prepareStatement(sqlNewName);
             PreparedStatement stmtOwn = connection.prepareStatement(sqlOwn);
             PreparedStatement stmNewPath = connection.prepareStatement(sqlNewPath);
+            PreparedStatement stmNameFileSubordinate = connection.prepareStatement(sqlNameFileSubordinate);
             File current = getLocals().stream()
                     .filter(locals -> locals.getName().equals(fileName) &&
                             locals.getPath().equals(mainPath))
                     .findFirst().orElse(null);
             stmtOwn.setLong(1, current.getId());
             resultSet = stmtOwn.executeQuery();
+            stmtNewName.setString(1, newName);
+            stmtNewName.setLong(2, current.getId());
+            stmtNewName.executeUpdate();
             while (resultSet.next()) {
                 Long fileId = resultSet.getLong("id_of_subordinate");
                 stmNewPath.setString(1, mainPath + "/" + newName);
                 stmNewPath.setLong(2, fileId);
                 stmNewPath.executeUpdate();
+                System.out.println("Файл был успешно переименован в: " + newName);
+                if (getOwnLocale(fileId) != null) {
+                    List<String> TempFilePath = new ArrayList<>();
+                    TempFilePath.addAll(ownerFilePath);
+                    TempFilePath.add("/");
+                    TempFilePath.add(newName);
+                    stmNameFileSubordinate.setLong(1, fileId);
+                    resultSetNameFileSubordinate = stmNameFileSubordinate.executeQuery();
+                    if (!resultSetNameFileSubordinate.next())
+                        continue;
+                    String tempName = resultSetNameFileSubordinate.getString("name");
+                    reName(TempFilePath, tempName, tempName);
+                }
             }
-            stmtNewName.setString(1, newName);
-            stmtNewName.setLong(2, current.getId());
-            stmtNewName.executeUpdate();
-            System.out.println("Файл был успешно переименован в: " + newName);
+            connection.commit(); // Подтверждаем транзакцию
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
         }

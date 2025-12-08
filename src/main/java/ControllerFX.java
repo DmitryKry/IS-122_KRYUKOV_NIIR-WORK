@@ -92,9 +92,8 @@ public class ControllerFX {
         if (path == null){
             path = "/home";
         }
-        File file = new File(path, path, type);
-        user.setLocation("/home");
-        SQLFilesDAO.addFile(file, user);
+        File file = new File(path, null, type);
+        SQLFilesDAO.addFile(user.getlocation(), file, user);
     }
 
     public void ls(){
