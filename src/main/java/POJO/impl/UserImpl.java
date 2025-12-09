@@ -72,6 +72,7 @@ public class UserImpl implements User {
 
     @Override
     public void setLocation(String location) {
+        List<String> paths = new ArrayList<>();
         if (location.equals("..")){
             if (locale.size() < 3){
                 return;
@@ -80,15 +81,49 @@ public class UserImpl implements User {
             locale.remove(locale.size()-1);
             return;
         }
-        /*if (Support.FindElem(location, '/') != null)
-            return;*/
-        File file = SQLFilesDAO.getLocals().stream().filter(
-                t -> t.getName().equals(location)).findFirst().orElse(null);
-        if (file != null) {
-            if (SQLFilesDAO.getOwnLocale(file.getId()) != null)
-                this.locale.add("/");
+        if (Support.FindElem(location, '/') != null){
+            String fileName = "";
+            while(!location.isEmpty()){
+                String tempForOwnFileName = "";
+                String ownFileName = "";
+                for (int i = location.length() - 1; i >= 0; i--) {
+                    if (location.charAt(i) == '/'){
+                        location = location.substring(0, location.length() - 1);
+                        break;
+                    }
+                    else tempForOwnFileName += location.charAt(i);
+                    location = location.substring(0, location.length() - 1);
+                }
+                for (int i = tempForOwnFileName.length() - 1; i >= 0; i--) {
+                    ownFileName += tempForOwnFileName.charAt(i);
+                }
+                fileName = ownFileName;
+                String tempPath = location;
+                paths.add(0, fileName);
+                paths.add(0, "/");
+            }
+            fileName = "";
+            for (int i = 0; i < paths.size() - 2; i++) {
+                fileName += paths.get(i);
+            }
+            String tfname = fileName;
+            File fileCompile = SQLFilesDAO.getLocals().stream()
+                    .filter(locals -> locals.getName().equals(paths.get(paths.size() - 1)) &&
+                            locals.getPath().equals(tfname))
+                    .findFirst().orElse(null);
+            if (fileCompile != null) {
+                this.locale.clear();
+                this.locale.addAll(paths);
+            }
+        } else {
+            String tLocale = location;
+            File file = SQLFilesDAO.getLocals().stream().filter(
+                    t -> t.getName().equals(tLocale)).findFirst().orElse(null);
+            if (file != null) {
+                if (SQLFilesDAO.getOwnLocale(file.getId()) != null)
+                    this.locale.add("/");
                 this.locale.add(location);
+            }
         }
-
     }
 }
