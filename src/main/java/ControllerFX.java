@@ -58,7 +58,9 @@ public class ControllerFX {
                         break;
                     case "ls":
                         outputArea.appendText(command + " " + path + ": ");
-                        ls();
+                        if (!path.isEmpty())
+                            ls(path);
+                        else ls();
                         break;
                     case "cd":
                         cd(path);
@@ -97,7 +99,13 @@ public class ControllerFX {
     }
 
     public void ls(){
-        for (String elem : action.ls(user))
+        for (String elem : action.ls(user, null))
+            outputArea.appendText(elem + '\n');
+
+    }
+
+    public void ls(String path){
+        for (String elem : action.ls(user, path))
             outputArea.appendText(elem + '\n');
 
     }

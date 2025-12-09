@@ -239,7 +239,10 @@ public class SQLFilesDAO {
         String sqlPath = "select id from file where path = ? and name = ?";
         String sqlSubordinate = "update storage_files set id_of_owner = ? where id_of_subordinate = ?";
         String sqlUpdateFile = "update file set path = ? where id = ?";
+        String sqlNameFileSubordinate = "select name from file where id = ?";
+        String sqlOwn = "select id_of_subordinate from storage_files where id_of_owner = ?";
         ResultSet resultSet;
+        ResultSet resultSetNameFileSubordinate;
         String ownFileName = "";
         String tempForOwnFileName = "";
         try {
@@ -256,35 +259,59 @@ public class SQLFilesDAO {
             }
             connection.setAutoCommit(false);
             String tempmainPath = "";
-            for (int i = 0; i < ownerFileNames.size() - 2; i++) {
+            for (int i = 0; i < ownerFileNames.size(); i++) {
                 tempmainPath += ownerFileNames.get(i);
             }
             String MAINPath = tempmainPath;
-            File ownFile = getLocals().stream()
-                    .filter(locals -> locals.getName()
-                            .equals(ownerFileNames.get(ownerFileNames.size() - 1)) &&
-                            locals.getPath().equals(MAINPath))
-                    .findFirst().orElse(null);
             File file = getLocals().stream()
                     .filter(locals -> locals.getName()
                             .equals(fileName) &&
-                            locals.getPath().equals(ownFile.getPath() + "/" + ownFile.getName()))
+                            locals.getPath().equals(MAINPath))
                     .findFirst().orElse(null);
-            PreparedStatement stmtPath = connection.prepareStatement(sqlPath);
+            String tempOwnFileName = ownFileName;
+            String tempOwnPath = path;
+            File nextOwn = getLocals().stream()
+                    .filter(locals -> locals.getName().equals(tempOwnFileName) &&
+                            locals.getPath().equals(tempOwnPath)).findFirst().orElse(null);
+            PreparedStatement stmtPath = connection.prepareStatement(sqlOwn);
             PreparedStatement stmtSubordinate = connection.prepareStatement(sqlSubordinate);
             PreparedStatement stmtUpdateFile = connection.prepareStatement(sqlUpdateFile);
-            stmtPath.setString(1, path);
-            stmtPath.setString(2, ownFileName);
-            resultSet = stmtPath.executeQuery();
-            while (resultSet.next()) {
-                Long fileId = resultSet.getLong("id");
-                stmtSubordinate.setLong(1, fileId);
-                stmtSubordinate.setLong(2, file.getId());
-            }
-            stmtSubordinate.executeUpdate();
+            PreparedStatement stmNameFileSubordinate = connection.prepareStatement(sqlNameFileSubordinate);
             stmtUpdateFile.setString(1, path + '/' + ownFileName);
             stmtUpdateFile.setLong(2, file.getId());
             stmtUpdateFile.executeUpdate();
+
+            stmtSubordinate.setLong(1, nextOwn.getId());
+            stmtSubordinate.setLong(2, file.getId());
+            stmtSubordinate.executeUpdate();
+
+            List<String> TempFilePath = new ArrayList<>();
+            TempFilePath.addAll(ownerFileNames);
+            TempFilePath.add("/");
+            TempFilePath.add(ownFileName);
+            reName(TempFilePath, file.getName(), file.getName());
+            /*
+            while (resultSet.next()) {
+                Long fileId = resultSet.getLong("id_of_subordinate");
+                stmtSubordinate.setLong(1, fileId);
+                stmtSubordinate.setLong(2, file.getId());
+                stmtSubordinate.executeUpdate();
+                System.out.println("Файл " + fileName + " был успешно перемещен");
+                if (getOwnLocale(fileId) != null) {
+                    List<String> TempFilePath = new ArrayList<>();
+                    TempFilePath.addAll(ownerFileNames);
+                    TempFilePath.add("/");
+                    TempFilePath.add(file.getName());
+                    stmNameFileSubordinate.setLong(1, fileId);
+                    resultSetNameFileSubordinate = stmNameFileSubordinate.executeQuery();
+                    if (!resultSetNameFileSubordinate.next())
+                        continue;
+                    String tempName = resultSetNameFileSubordinate.getString("name");
+                    reName(TempFilePath, tempName, tempName);
+                }
+            }*/
+
+
             connection.commit(); // Подтверждаем транзакцию
             System.out.println("Файл успешно перемещён: " + fileName);
         } catch (SQLException e) {
@@ -344,101 +371,34 @@ public class SQLFilesDAO {
         }
         
     }
-/*
-    public static boolean deleteProductById(long id) {
-        String sql = "DELETE FROM products WHERE id = ?";
 
-        try {
-            PreparedStatement pstmt = connection.prepareStatement(sql);
-
-            pstmt.setLong(1, id);
-            int affectedRows = pstmt.executeUpdate();
-
-            if (affectedRows > 0) {
-                System.out.println("Запись с id = " + id + " успешно удалена.");
-                return true;
-            } else {
-                System.out.println("Запись с id = " + id + " не найдена.");
-                return false;
+    static public List<String> ls(String path){
+        List<File> list;
+        List<String> tempList = new ArrayList<>();
+        String tempForOwnFileName = "";
+        String ownFileName = "";
+        for (int i = path.length() - 1; i >= 0; i--) {
+            if (path.charAt(i) == '/'){
+                path = path.substring(0, path.length() - 1);
+                break;
             }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
+            else tempForOwnFileName += path.charAt(i);
+            path = path.substring(0, path.length() - 1);
         }
-        return false;
-    }
-
-    public static boolean updateProduct(FileService fileService) {
-        String sql = "UPDATE products SET product_category = ?, product_name = ?, price = ?, manufacture_date = ?, expiry_date = ? WHERE id = ?";
-
-        try {
-            PreparedStatement stmt = connection.prepareStatement(sql);
-
-            stmt.setString(1, fileService.getProductСategory());
-            stmt.setString(2, fileService.getProductName());
-            stmt.setDouble(3, fileService.getPrice());
-            stmt.setDate(4, java.sql.Date.valueOf(fileService.getManufactureDate()));
-            stmt.setDate(5, java.sql.Date.valueOf(fileService.getExpiryDate()));
-            stmt.setLong(6, fileService.getId()); // идентификатор записи, которую редактируем
-
-            int affectedRows = stmt.executeUpdate();
-            if (affectedRows > 0) {
-                //System.out.println("Продукт успешно обновлён.");
-                return true;
-            } else {
-                System.out.println("Error");
-                return false;
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
+        for (int i = tempForOwnFileName.length() - 1; i >= 0; i--) {
+            ownFileName += tempForOwnFileName.charAt(i);
         }
-        return false;
-    }
-
-    public static List<FileService> getAllfils() {
-        List<FileService> products = new ArrayList<>();
-
-        String sql = "SELECT * FROM products";
-
-        try {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-            while (rs.next()) {
-                long id = rs.getLong("id");
-                String category = rs.getString("product_category");
-                String name = rs.getString("product_name");
-                double price = rs.getDouble("price");
-                LocalDate manufactureDate = rs.getDate("manufacture_date").toLocalDate();
-                LocalDate expiryDate = rs.getDate("expiry_date").toLocalDate();
-
-                FileService file = new FileService(id, category, name, price, manufactureDate, expiryDate);
-                products.add(file);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
+        String fileName = ownFileName;
+        String tempPath = path;
+        File file = getLocals().stream()
+                .filter(locals -> locals.getName().equals(fileName) &&
+                        locals.getPath().equals(tempPath))
+                .findFirst().orElse(null);
+        list = getOwnLocale(file.getId());
+        for (File elem : list) {
+            tempList.add(elem.getName());
         }
-        return products;
+        return tempList;
     }
-
-    public static int getProductCount() {
-        String sql = "SELECT COUNT(*) FROM products";
-
-        try {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-
-            if (rs.next()) {
-                return rs.getInt(1); // получаем значение COUNT(*)
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return 0;
-    }
- */
 
 }

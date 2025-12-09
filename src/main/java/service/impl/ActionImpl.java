@@ -21,7 +21,10 @@ public class ActionImpl implements ActionService {
     }
 
     @Override
-    public List<String> ls(UserImpl user) {
+    public List<String> ls(UserImpl user, String path) {
+        if (path != null) {
+            return SQLFilesDAO.ls(path);
+        }
         namesOfFiles = new ArrayList<String>();
         String TempForOwnLocale = "";
         for (int i = 0; i < user.getlocation().size() - 2; i++) {
@@ -32,19 +35,14 @@ public class ActionImpl implements ActionService {
         }
         String ownLocale = TempForOwnLocale;
         file = SQLFilesDAO.getLocals().stream().filter(
-                t -> t.getName().equals(user.getlocation().get(user.getlocation().size() - 1)) &&
-                        t.getPath().equals(ownLocale))
+                        t -> t.getName().equals(user.getlocation().get(user.getlocation().size() - 1)) &&
+                                t.getPath().equals(ownLocale))
                 .findFirst().orElse(null);
         filesOfOwner = SQLFilesDAO.getOwnLocale(file.getId());
         for (int i = 0; i < filesOfOwner.size(); i++) {
             namesOfFiles.add(filesOfOwner.get(i).getName());
         }
         return namesOfFiles;
-    }
-
-    @Override
-    public List<String> ls(String file) {
-        return List.of();
     }
 
     @Override
