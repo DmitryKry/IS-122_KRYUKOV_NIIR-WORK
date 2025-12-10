@@ -11,4 +11,5 @@ public interface ActionService {
     void delete(List<String> ownerFiles,String file);
     void move(List<String> ownerFiles, String file, String path);
     void reName(List<String> ownerFiles, String file, String newName);
+    void nano(List<String> ownerFiles, String file, String text);
 }

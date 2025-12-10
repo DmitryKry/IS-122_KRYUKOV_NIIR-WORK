@@ -60,4 +60,9 @@ public class ActionImpl implements ActionService {
         SQLFilesDAO.reName(ownerFiles, file, newName);
     }
 
+    @Override
+    public void nano(List<String> ownerFiles, String file, String text) {
+        SQLFilesDAO.nano(ownerFiles, file, text);
+    }
+
 }

@@ -31,18 +31,21 @@ public class SQLFilesDAO {
         }
     }
 
-    public static boolean addFile(List<String> ownerFileNames,FileService fileService, User user) {
+    public static Long addFile(List<String> ownerFileNames,FileService fileService) {
         String sqlFile = "insert into file(name, path, type) VALUES (?, ?, ?) returning ID";
         String sqlСonnection = "insert into storage_files(id_of_owner, id_of_subordinate) VALUES (?, ?)";
         String sql = "SELECT id FROM file where name = ?";
         String sqlPath = "select * from file where path = ? and name = ?";
+        String sqlCreatFile = "insert into data_of_file(file_id) VALUES (?) ";
         ResultSet resultSet;
 
         try {
+            connection.setAutoCommit(false);
             PreparedStatement stmt = connection.prepareStatement(sqlFile);
             PreparedStatement stmtConnect = connection.prepareStatement(sqlСonnection);
             PreparedStatement stmtSql = connection.prepareStatement(sql);
             PreparedStatement stmtPath = connection.prepareStatement(sqlPath);
+            PreparedStatement stmtCreatFile = connection.prepareStatement(sqlCreatFile);
 
             String tempmainPath = "";
             for (int i = 0; i < ownerFileNames.size() - 2; i++) {
@@ -54,10 +57,11 @@ public class SQLFilesDAO {
                             .equals(ownerFileNames.get(ownerFileNames.size() - 1)) &&
                             locals.getPath().equals(MAINPath))
                     .findFirst().orElse(null);
-
+            if (ownFile.getPath().equals("file"))
+                return Long.valueOf(0);
             String Repiet = "";
             String path = "";
-            for (String elem : user.getlocation())
+            for (String elem : ownerFileNames)
                 path += elem;
             fileService.setPath(path);
 
@@ -74,9 +78,9 @@ public class SQLFilesDAO {
             stmt.setString(2, fileService.getPath());
 
 
-            if (Support.FindElem(fileService.getName(), '/') == null) {
+            if (Support.FindElem(fileService.getName(), "/") == null) {
                 stmt.setString(2, fileService.getPath());
-                stmtSql.setString(1, user.getlocation().get(user.getlocation().size() - 1));
+                stmtSql.setString(1, ownerFileNames.get(ownerFileNames.size() - 1));
                 resultSet = stmtSql.executeQuery();
                 if (resultSet.next()) {
                     //stmtConnect.setLong(1, resultSet.getLong("ID"));
@@ -87,17 +91,23 @@ public class SQLFilesDAO {
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 long generatedId = rs.getLong("ID");
+                fileService.setId(generatedId);
                 stmtConnect.setLong(2, generatedId);
+                if (fileService.getType().equals("file")){
+                    stmtCreatFile.setLong(1, generatedId);
+                    stmtCreatFile.executeUpdate();
+                }
                 System.out.println("Файл успешно создан!");
                 System.out.println("✅ Сгенерированный ID: " + generatedId);
             }
             stmtConnect.executeUpdate();
-
+            connection.commit();
+            connection.setAutoCommit(true);
+            return Long.valueOf(fileService.getId());
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
-            return false;
+            return Long.valueOf(0);
         }
-        return false;
     }
 
     public static List<File> getOwnLocale(Long idOfOwner) {
@@ -205,6 +215,7 @@ public class SQLFilesDAO {
                     stmtSql.setLong(1, elem.getId());
                     stmtSql.executeUpdate();
                     connection.commit(); // Подтверждаем транзакцию
+                    connection.setAutoCommit(true);
                     System.out.println("Файл успешно удален: " + fileName);
                 }
                 else {
@@ -227,6 +238,7 @@ public class SQLFilesDAO {
             stmtSql.executeUpdate();
 
             connection.commit(); // Подтверждаем транзакцию
+            connection.setAutoCommit(true);
             System.out.println("Файл успешно удален: " + fileName);
 
         } catch (SQLException e) {
@@ -313,6 +325,7 @@ public class SQLFilesDAO {
 
 
             connection.commit(); // Подтверждаем транзакцию
+            connection.setAutoCommit(true);
             System.out.println("Файл успешно перемещён: " + fileName);
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
@@ -366,6 +379,7 @@ public class SQLFilesDAO {
                 }
             }
             connection.commit(); // Подтверждаем транзакцию
+            connection.setAutoCommit(true);
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
         }
@@ -401,4 +415,58 @@ public class SQLFilesDAO {
         return tempList;
     }
 
+    static public void nano(List<String> ownerFilePath, String fileName, String text){
+        String sql = "update data_of_file set tail = ? where file_id = ?";
+        String tempPath = "";
+        String tempForOwnFileName = "";
+        String ownFileName = "";
+        boolean check = false;
+        try {
+            connection.setAutoCommit(false);
+            for (String elem : ownerFilePath) {
+                tempPath += elem;
+            }
+            PreparedStatement stmt = connection.prepareStatement(sql);
+            if (Support.FindElem(fileName, "/") != null){
+                if (Support.FindElem(fileName, "/home") != null){
+                    tempPath += "/" + fileName;
+                }
+                check = true;
+                for (int i = fileName.length() - 1; i >= 0; i--) {
+                    if (fileName.charAt(i) == '/'){
+                        fileName = fileName.substring(0, fileName.length() - 1);
+                        break;
+                    }
+                    else tempForOwnFileName += fileName.charAt(i);
+                    fileName = fileName.substring(0, fileName.length() - 1);
+                }
+                for (int i = tempForOwnFileName.length() - 1; i >= 0; i--) {
+                    ownFileName += tempForOwnFileName.charAt(i);
+                }
+
+            }
+            Long idOfFile;
+            String mainName = ownFileName == "" ? fileName : ownFileName;
+            if (check)
+                tempPath += "/" + fileName;
+            String mainPath = tempPath;
+            File current = getLocals().stream()
+                    .filter(locals -> locals.getName().equals(mainName) &&
+                            locals.getPath().equals(mainPath))
+                    .findFirst().orElse(null);
+            if (current == null){
+                File file = new File(mainName, null, "file");
+                idOfFile = addFile(ownerFilePath, file);
+            }
+            else idOfFile = current.getId();
+            stmt.setString(1, text);
+            stmt.setLong(2, idOfFile);
+            stmt.executeUpdate();
+            connection.commit();
+            connection.setAutoCommit(true);
+            stmt.close();
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
 }

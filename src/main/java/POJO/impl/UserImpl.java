@@ -81,7 +81,7 @@ public class UserImpl implements User {
             locale.remove(locale.size()-1);
             return;
         }
-        if (Support.FindElem(location, '/') != null){
+        if (Support.FindElem(location, "/") != null){
             String fileName = "";
             while(!location.isEmpty()){
                 String tempForOwnFileName = "";

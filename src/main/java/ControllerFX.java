@@ -10,6 +10,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import service.impl.ActionImpl;
+import supportive.Support;
 
 import java.io.IOException;
 public class ControllerFX {
@@ -36,6 +37,7 @@ public class ControllerFX {
             String command = "";
             String path = "";
             String pathSecond = "";
+            boolean typeFile = false;
             if (!text.isEmpty()) {
                 inputField.clear();  // Очищаем поле после отправки
                 for (char c : text.toCharArray()) {
@@ -51,10 +53,13 @@ public class ControllerFX {
                 }
                 commandChek = false;
                 ParhChek = false;
-
+                if (Support.FindElem(path, ".") != null)
+                    typeFile = true;
                 switch (command) {
                     case "mkdir":
-                        addFile(path, null);
+                        if (typeFile)
+                            addFile(path, "file");
+                        else addFile(path, null);
                         break;
                     case "ls":
                         outputArea.appendText(command + " " + path + ": ");
@@ -81,6 +86,9 @@ public class ControllerFX {
                     case "reName":
                         reName(path, pathSecond);
                         break;
+                    case "nano":
+                        nano(path, pathSecond);
+                        break;
                  }
 
             }
@@ -95,7 +103,7 @@ public class ControllerFX {
             path = "/home";
         }
         File file = new File(path, null, type);
-        SQLFilesDAO.addFile(user.getlocation(), file, user);
+        SQLFilesDAO.addFile(user.getlocation(), file);
     }
 
     public void ls(){
@@ -140,4 +148,9 @@ public class ControllerFX {
         action.reName(user.getlocation(), file, newName);
         user = action.cd("..", user);
     }
+
+    public void nano(String file, String text){
+        action.nano(user.getlocation(), file, text);
+    }
+
 }
