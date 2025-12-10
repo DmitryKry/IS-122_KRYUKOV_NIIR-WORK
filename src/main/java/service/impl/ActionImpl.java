@@ -65,4 +65,9 @@ public class ActionImpl implements ActionService {
         SQLFilesDAO.nano(ownerFiles, file, text);
     }
 
+    @Override
+    public String cat(List<String> ownerFiles, String file) {
+        return SQLFilesDAO.cat(ownerFiles, file);
+    }
+
 }

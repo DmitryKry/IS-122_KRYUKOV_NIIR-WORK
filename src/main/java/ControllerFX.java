@@ -89,6 +89,9 @@ public class ControllerFX {
                     case "nano":
                         nano(path, pathSecond);
                         break;
+                    case "cat":
+                        cat(path);
+                        break;
                  }
 
             }
@@ -151,6 +154,12 @@ public class ControllerFX {
 
     public void nano(String file, String text){
         action.nano(user.getlocation(), file, text);
+    }
+
+    public void cat(String file){
+        outputArea.appendText("cat " + file + ": ");
+        outputArea.appendText(action.cat(user.getlocation(), file));
+        outputArea.appendText("\n");
     }
 
 }

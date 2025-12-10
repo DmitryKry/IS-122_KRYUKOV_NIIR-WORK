@@ -469,4 +469,64 @@ public class SQLFilesDAO {
             System.out.println("Error: " + e.getMessage());
         }
     }
+
+    static public String cat(List<String> ownerFilePath, String fileName){
+        String sqlOwn = "select tail from data_of_file where file_id = ?";
+        String tempPath = "";
+        ResultSet resultSet;
+        String tempForOwnFileName = "";
+        String ownFileName = "";
+        String tempList = "";
+        boolean check = false;
+        try {
+            connection.setAutoCommit(false); // Начинаем транзакцию
+            for (String elem : ownerFilePath) {
+                tempPath += elem;
+            }
+            PreparedStatement stmt = connection.prepareStatement(sqlOwn);
+            if (Support.FindElem(fileName, "/") != null){
+                if (Support.FindElem(fileName, "/home") != null){
+                    tempPath += "/" + fileName;
+                }
+                check = true;
+                for (int i = fileName.length() - 1; i >= 0; i--) {
+                    if (fileName.charAt(i) == '/'){
+                        fileName = fileName.substring(0, fileName.length() - 1);
+                        break;
+                    }
+                    else tempForOwnFileName += fileName.charAt(i);
+                    fileName = fileName.substring(0, fileName.length() - 1);
+                }
+                for (int i = tempForOwnFileName.length() - 1; i >= 0; i--) {
+                    ownFileName += tempForOwnFileName.charAt(i);
+                }
+
+            }
+            Long idOfFile;
+            String mainName = ownFileName == "" ? fileName : ownFileName;
+            if (check)
+                tempPath += "/" + fileName;
+            String mainPath = tempPath;
+            File current = getLocals().stream()
+                    .filter(locals -> locals.getName().equals(mainName) &&
+                            locals.getPath().equals(mainPath))
+                    .findFirst().orElse(null);
+            if (current == null){
+                return null;
+            }
+            stmt.setLong(1, current.getId());
+            resultSet = stmt.executeQuery();
+            while (resultSet.next()) {
+                tempList += resultSet.getString("tail");
+            }
+
+            connection.commit(); // Подтверждаем транзакцию
+            connection.setAutoCommit(true);
+            return tempList;
+        }
+        catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+            return null;
+        }
+    }
 }
