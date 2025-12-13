@@ -92,6 +92,9 @@ public class ControllerFX {
                     case "cat":
                         cat(path);
                         break;
+                    case "copy":
+                        copy(path, pathSecond);
+                        break;
                  }
 
             }
@@ -162,4 +165,8 @@ public class ControllerFX {
         outputArea.appendText("\n");
     }
 
+    public void copy(String file, String path){
+        if (!action.copy(user.getlocation(), file, path))
+            outputArea.appendText("Ошибка, файл не найден!\n");
+    }
 }

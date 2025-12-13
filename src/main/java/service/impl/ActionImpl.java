@@ -70,4 +70,9 @@ public class ActionImpl implements ActionService {
         return SQLFilesDAO.cat(ownerFiles, file);
     }
 
+    @Override
+    public boolean copy(List<String> ownerFiles,String file, String path){
+        return SQLFilesDAO.copy(ownerFiles, file, path);
+    }
+
 }

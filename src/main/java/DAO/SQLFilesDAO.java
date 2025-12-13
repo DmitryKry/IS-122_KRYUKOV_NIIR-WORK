@@ -653,4 +653,71 @@ public class SQLFilesDAO {
             copyOwnerFilePath.remove(copyOwnerFilePath.size() - 1);
         return getFile(copyOwnerFilePath, nameFile);
     }
+
+    static public boolean copy(List<String> ownerFilePath, String fileName, String place){
+        List <String> copyOwner = new ArrayList<>();
+        List<String> copyOwnerFilePath = new ArrayList<>();
+        List<String> copyFileNamePathAll = new ArrayList<>();
+        String tempPath = "";
+
+        File locale = getFile(ownerFilePath, fileName);
+        if (locale == null){
+            return false;
+        }
+        for (char elem : place.toCharArray()){
+            if (elem == '/' && !tempPath.isEmpty()){
+                copyOwnerFilePath.add("/");
+                copyOwnerFilePath.add(tempPath);
+                tempPath = "";
+            }
+            else if (elem != '/'){
+                tempPath += elem;
+            }
+        }
+        copyOwnerFilePath.add("/");
+        copyOwnerFilePath.add(tempPath);
+        File copyFile = new File(locale.getName(), locale.getPath(), locale.getType());
+        addFile(copyOwnerFilePath, copyFile);
+        copyOwner.addAll(ownerFilePath);
+        copyOwner.add("/");
+        copyOwner.add(locale.getName());
+        if (copyFile.getType().equals("file")){
+            addFileTouch(copyFile, locale);
+        }
+        place += "/" + fileName;
+        if (getOwnLocale(locale.getId()) != null){
+            for (File elem : getOwnLocale(locale.getId())){
+                if (!copy(copyOwner, elem.getName(), place))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    static public boolean addFileTouch(File newfile, File oldfile) {
+        String getSql = "select tail from data_of_file where file_id = ?";
+        String setSql = "update data_of_file set tail = ? where file_id = ?";
+        ResultSet resultSet;
+        try {
+            connection.setAutoCommit(false);
+            PreparedStatement stmtGet = connection.prepareStatement(getSql);
+            PreparedStatement stmtSet = connection.prepareStatement(setSql);
+            stmtGet.setLong(1, oldfile.getId());
+            resultSet = stmtGet.executeQuery();
+            if (resultSet.next()) {
+                String tail = resultSet.getString("tail");
+                stmtSet.setString(1, tail);
+                stmtSet.setLong(2, newfile.getId());
+                stmtSet.executeUpdate();
+                connection.commit();
+                connection.setAutoCommit(true);
+                return true;
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+            return false;
+        }
+        return false;
+    }
 }

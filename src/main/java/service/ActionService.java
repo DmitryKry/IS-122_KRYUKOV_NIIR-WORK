@@ -13,4 +13,5 @@ public interface ActionService {
     void reName(List<String> ownerFiles, String file, String newName);
     void nano(List<String> ownerFiles, String file, String text);
     String cat(List<String> ownerFiles, String file);
+    boolean copy(List<String> ownerFiles,String file, String path);
 }
