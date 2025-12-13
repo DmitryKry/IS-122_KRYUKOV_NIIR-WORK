@@ -23,7 +23,7 @@ public class ActionImpl implements ActionService {
     @Override
     public List<String> ls(UserImpl user, String path) {
         if (path != null) {
-            return SQLFilesDAO.ls(path);
+            return SQLFilesDAO.ls(user.getlocation(), path);
         }
         namesOfFiles = new ArrayList<String>();
         String TempForOwnLocale = "";

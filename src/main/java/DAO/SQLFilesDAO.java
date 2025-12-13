@@ -38,7 +38,12 @@ public class SQLFilesDAO {
         String sqlPath = "select * from file where path = ? and name = ?";
         String sqlCreatFile = "insert into data_of_file(file_id) VALUES (?) ";
         ResultSet resultSet;
-
+        String tempPath = "";
+        String tempForOwnFileName = "";
+        String ownFileName = "";
+        File ownFile;
+        String path = "";
+        boolean check = false;
         try {
             connection.setAutoCommit(false);
             PreparedStatement stmt = connection.prepareStatement(sqlFile);
@@ -46,25 +51,60 @@ public class SQLFilesDAO {
             PreparedStatement stmtSql = connection.prepareStatement(sql);
             PreparedStatement stmtPath = connection.prepareStatement(sqlPath);
             PreparedStatement stmtCreatFile = connection.prepareStatement(sqlCreatFile);
+            if (Support.FindElem(fileService.getName(), "/") != null) {
+                String tempName = "";
+                String name = "";
+                for (int i = fileService.getName().length() - 1; i >= 0; i--) {
+                    if (fileService.getName().charAt(i) == '/') {
+                        fileService.setName(fileService.getName().substring(0, fileService.getName().length() - 1));
+                        break;
+                    }
+                    tempName += fileService.getName().charAt(i);
+                    fileService.setName(fileService.getName().substring(0, fileService.getName().length() - 1));
+                }
+                for (int i = tempName.length() - 1; i >= 0; i--) {
+                    name += tempName.charAt(i);
+                }
+                if (Support.FindElem(fileService.getName(), "/home") != null) {
+                    List<String> ownPathFile = new ArrayList<>();
+                    String tempFileNamePath = "";
+                    for (int i = 1; i < fileService.getName().length(); i++) {
+                        if (fileService.getName().charAt(i) == '/' && !tempFileNamePath.equals("")) {
+                            ownPathFile.add("/");
+                            ownPathFile.add(tempFileNamePath);
+                            tempFileNamePath = "";
+                        }
+                        else tempFileNamePath += fileService.getName().charAt(i);
+                    }
+                    ownPathFile.add("/");
+                    ownPathFile.add(tempFileNamePath);
+                    ownFile = getOwnFile(ownPathFile);
+                    String tempAdd = "";
+                    for (String elem : ownPathFile){
+                        tempAdd += elem;
+                    }
+                    fileService.setPath(tempAdd);
+                }
+                else {
+                    String tempAdd = "";
+                    for (String elem : ownerFileNames){
+                        tempAdd += elem;
+                    }
+                    ownFile = getFile(ownerFileNames, fileService.getName());
+                    fileService.setPath(tempAdd + '/' + fileService.getName());
+                }
+                fileService.setName(name);
 
-            String tempmainPath = "";
-            for (int i = 0; i < ownerFileNames.size() - 2; i++) {
-                tempmainPath += ownerFileNames.get(i);
             }
-            String MAINPath = tempmainPath;
-            File ownFile = getLocals().stream()
-                    .filter(locals -> locals.getName()
-                            .equals(ownerFileNames.get(ownerFileNames.size() - 1)) &&
-                            locals.getPath().equals(MAINPath))
-                    .findFirst().orElse(null);
+            else{
+                ownFile = getOwnFile(ownerFileNames);
+                for (String elem : ownerFileNames)
+                    path += elem;
+                fileService.setPath(path);
+            }
             if (ownFile.getPath().equals("file"))
                 return Long.valueOf(0);
             String Repiet = "";
-            String path = "";
-            for (String elem : ownerFileNames)
-                path += elem;
-            fileService.setPath(path);
-
             while (true) {
                 stmtPath.setString(1, fileService.getPath());
                 stmtPath.setString(2, fileService.getName() + Repiet);
@@ -386,11 +426,17 @@ public class SQLFilesDAO {
         
     }
 
-    static public List<String> ls(String path){
+    static public List<String> ls(List<String> ownerFilePath, String path){
         List<File> list;
         List<String> tempList = new ArrayList<>();
         String tempForOwnFileName = "";
         String ownFileName = "";
+        String tempPathOwn = "";
+        if (Support.FindElem(path, "/home") == null){
+            for (String elem : ownerFilePath)
+                tempPathOwn += elem;
+            path = tempPathOwn + path;
+        }
         for (int i = path.length() - 1; i >= 0; i--) {
             if (path.charAt(i) == '/'){
                 path = path.substring(0, path.length() - 1);
@@ -423,10 +469,10 @@ public class SQLFilesDAO {
         boolean check = false;
         try {
             connection.setAutoCommit(false);
+            PreparedStatement stmt = connection.prepareStatement(sql);
             for (String elem : ownerFilePath) {
                 tempPath += elem;
             }
-            PreparedStatement stmt = connection.prepareStatement(sql);
             if (Support.FindElem(fileName, "/") != null){
                 if (Support.FindElem(fileName, "/home") != null){
                     tempPath += "/" + fileName;
@@ -528,5 +574,58 @@ public class SQLFilesDAO {
             System.out.println("Error: " + e.getMessage());
             return null;
         }
+    }
+
+    static public File getFile(List<String> ownerFilePath, String fileName){
+        String tempPath = "";
+        ResultSet resultSet;
+        String tempForOwnFileName = "";
+        String ownFileName = "";
+        String tempList = "";
+        boolean check = false;
+        for (String elem : ownerFilePath) {
+            tempPath += elem;
+        }
+        if (Support.FindElem(fileName, "/") != null){
+            if (Support.FindElem(fileName, "/home") != null){
+                tempPath += "/" + fileName;
+            }
+            check = true;
+            for (int i = fileName.length() - 1; i >= 0; i--) {
+                if (fileName.charAt(i) == '/'){
+                    fileName = fileName.substring(0, fileName.length() - 1);
+                    break;
+                }
+                else tempForOwnFileName += fileName.charAt(i);
+                fileName = fileName.substring(0, fileName.length() - 1);
+            }
+            for (int i = tempForOwnFileName.length() - 1; i >= 0; i--) {
+                ownFileName += tempForOwnFileName.charAt(i);
+            }
+
+        }
+        Long idOfFile;
+        String mainName = ownFileName == "" ? fileName : ownFileName;
+        if (check)
+            tempPath += "/" + fileName;
+        String mainPath = tempPath;
+        File current = getLocals().stream()
+                .filter(locals -> locals.getName().equals(mainName) &&
+                        locals.getPath().equals(mainPath))
+                .findFirst().orElse(null);
+        if (current == null){
+            return null;
+        }
+        return current;
+    }
+
+    static public File getOwnFile(List<String> ownerFilePath){
+        List<String> copyOwnerFilePath = new ArrayList<>();
+        copyOwnerFilePath.addAll(ownerFilePath);
+        String nameFile = ownerFilePath.get(ownerFilePath.size() - 1);
+        copyOwnerFilePath.remove(copyOwnerFilePath.size() - 1);
+        if (copyOwnerFilePath.size() != 1)
+            copyOwnerFilePath.remove(copyOwnerFilePath.size() - 1);
+        return getFile(copyOwnerFilePath, nameFile);
     }
 }
