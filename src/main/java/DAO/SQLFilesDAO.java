@@ -428,32 +428,57 @@ public class SQLFilesDAO {
 
     static public List<String> ls(List<String> ownerFilePath, String path){
         List<File> list;
+        File file;
         List<String> tempList = new ArrayList<>();
         String tempForOwnFileName = "";
         String ownFileName = "";
         String tempPathOwn = "";
-        if (Support.FindElem(path, "/home") == null){
+        if (Support.FindElem(path, "/home") != null){
+            for (int i = path.length() - 1; i >= 0; i--) {
+                if (path.charAt(i) == '/'){
+                    path = path.substring(0, path.length() - 1);
+                    break;
+                }
+                else tempForOwnFileName += path.charAt(i);
+                path = path.substring(0, path.length() - 1);
+            }
+            for (int i = tempForOwnFileName.length() - 1; i >= 0; i--) {
+                ownFileName += tempForOwnFileName.charAt(i);
+            }
+            String fileName = ownFileName;
+            String tempPath = path;
+            file = getLocals().stream()
+                    .filter(locals -> locals.getName().equals(fileName) &&
+                            locals.getPath().equals(tempPath))
+                    .findFirst().orElse(null);
+        }
+        else {
             for (String elem : ownerFilePath)
                 tempPathOwn += elem;
-            path = tempPathOwn + path;
-        }
-        for (int i = path.length() - 1; i >= 0; i--) {
-            if (path.charAt(i) == '/'){
-                path = path.substring(0, path.length() - 1);
-                break;
+            path = tempPathOwn + '/' + path;
+            String tempName = "";
+            for (int i = path.length() - 1; i >= 0; i--) {
+                if (path.charAt(i) == '/'){
+                    path = path.substring(0, path.length() - 1);
+                    break;
+                }
+                else {
+                    tempName += path.charAt(i);
+                    path = path.substring(0, path.length() - 1);
+                }
             }
-            else tempForOwnFileName += path.charAt(i);
-            path = path.substring(0, path.length() - 1);
+            String inverName = "";
+            for (int i = tempName.length() - 1; i >= 0; i--){
+                inverName += tempName.charAt(i);
+            }
+            String constPath = path;
+            String constName = inverName;
+            file = getLocals().stream()
+                    .filter(locals -> locals.getName().equals(constName) &&
+                            locals.getPath().equals(constPath))
+                    .findFirst().orElse(null);
         }
-        for (int i = tempForOwnFileName.length() - 1; i >= 0; i--) {
-            ownFileName += tempForOwnFileName.charAt(i);
-        }
-        String fileName = ownFileName;
-        String tempPath = path;
-        File file = getLocals().stream()
-                .filter(locals -> locals.getName().equals(fileName) &&
-                        locals.getPath().equals(tempPath))
-                .findFirst().orElse(null);
+
         list = getOwnLocale(file.getId());
         for (File elem : list) {
             tempList.add(elem.getName());
