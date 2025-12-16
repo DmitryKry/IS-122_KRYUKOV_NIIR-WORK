@@ -86,23 +86,27 @@ public class UserImpl implements User {
             while(!location.isEmpty()){
                 String tempForOwnFileName = "";
                 String ownFileName = "";
-                for (int i = location.length() - 1; i >= 0; i--) {
-                    if (location.charAt(i) == '/'){
-                        location = location.substring(0, location.length() - 1);
+                while (!location.isEmpty()) {
+                    if (location.charAt(0) == '/'){
+                        location = location.substring(1);
                         break;
                     }
-                    else tempForOwnFileName += location.charAt(i);
-                    location = location.substring(0, location.length() - 1);
+                    else tempForOwnFileName += location.charAt(0);
+                    location = location.substring(1);
                 }
+                /*
                 for (int i = tempForOwnFileName.length() - 1; i >= 0; i--) {
                     ownFileName += tempForOwnFileName.charAt(i);
-                }
-                fileName = ownFileName;
+                }*/
+                fileName = ownFileName.isEmpty() ? tempForOwnFileName : ownFileName;
                 String tempPath = location;
-                paths.add(0, fileName);
-                paths.add(0, "/");
+                paths.add("/");
+                paths.add(fileName);
+
             }
             fileName = "";
+            if (!paths.get(1).equals("home"))
+                fileName += "/home";
             for (int i = 0; i < paths.size() - 2; i++) {
                 fileName += paths.get(i);
             }

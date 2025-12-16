@@ -102,6 +102,8 @@ public class SQLFilesDAO {
                     path += elem;
                 fileService.setPath(path);
             }
+            if (ownFile == null)
+                return null;
             if (ownFile.getPath().equals("file"))
                 return Long.valueOf(0);
             String Repiet = "";
@@ -221,6 +223,7 @@ public class SQLFilesDAO {
     public static void deleteFile(List<String> ownerFileNames, String fileName) {
         String sql = "delete from file where id = ?";
         String sqlOwn = "delete from storage_files where id_of_owner = ? and id_of_subordinate = ?";
+        String sqlFile = "delete from data_of_file where file_id = ?";
         try {
             connection.setAutoCommit(false); // Начинаем транзакцию
 
@@ -247,6 +250,11 @@ public class SQLFilesDAO {
             long fileId = file.getId();
             PreparedStatement stmtSqlSubordinate = connection.prepareStatement(sqlOwn);
             PreparedStatement stmtSql = connection.prepareStatement(sql);
+            PreparedStatement stmtSqlFile = connection.prepareStatement(sqlFile);
+            if (file.getType().equals("file")) {
+                stmtSqlFile.setLong(1, fileId);
+                stmtSqlFile.executeUpdate();
+            }
             for (File elem : getOwnLocale(fileId)) {
                 if (getOwnLocale(elem.getId()) == null) {
                     stmtSqlSubordinate.setLong(1, fileId);
